@@ -3,6 +3,7 @@ import { Image, ScrollView } from 'react-native';
 
 import Icon from 'react-native-vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
+import { AxiosResponse } from 'axios';
 import Logo from '../../assets/logo-header.png';
 import SearchInput from '../../components/SearchInput';
 
@@ -54,27 +55,47 @@ const Dashboard: React.FC = () => {
   const navigation = useNavigation();
 
   async function handleNavigate(id: number): Promise<void> {
-    // Navigate do ProductDetails page
+    navigation.navigate('FoodDetails', { id });
   }
 
   useEffect(() => {
-    async function loadFoods(): Promise<void> {
-      // Load Foods from API
-    }
-
-    loadFoods();
-  }, [selectedCategory, searchValue]);
-
-  useEffect(() => {
     async function loadCategories(): Promise<void> {
-      // Load categories from API
+      const response = await api.get('/categories');
+      setCategories(response.data);
     }
 
     loadCategories();
   }, []);
 
+  useEffect(() => {
+    async function loadFoods(): Promise<void> {
+      let response: AxiosResponse<Food[]>;
+
+      if (selectedCategory) {
+        response = await api.get<Food[]>(
+          `/foods?category_like=${selectedCategory}`,
+        );
+      } else {
+        response = await api.get<Food[]>(`/foods?name_like=${searchValue}`);
+      }
+
+      const foodPlates = response.data.map(foodPlate => ({
+        ...foodPlate,
+        formattedPrice: formatValue(foodPlate.price),
+      }));
+
+      setFoods(foodPlates);
+    }
+
+    loadFoods();
+  }, [selectedCategory, searchValue]);
+
   function handleSelectCategory(id: number): void {
-    // Select / deselect category
+    if (id === selectedCategory) {
+      setSelectedCategory(0);
+    } else {
+      setSelectedCategory(id);
+    }
   }
 
   return (
